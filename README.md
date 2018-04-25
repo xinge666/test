@@ -1,6 +1,4 @@
-没编写makefile
-
-gcc -g -rdynamic httptest.c -o httptest -lpthread
+测试网站是度娘
 
 参数含义：
 
