@@ -19,7 +19,6 @@
 #include <arpa/inet.h>
 //互斥量,用于对工作队列的访问
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
 //标记线程池是否处于可用状态
 static int tp_alive = 1;
 
@@ -124,10 +123,6 @@ void* tp_thread_func(thread_pool *tp){
     
     while(tp_alive){
             //线程阻塞,等待信号量
-
-
-        pthread_mutex_unlock(&mutex1);
-			//线程阻塞,等待信号量
         if(sem_wait(tp->link_all)){
                 printf("thread waiting for semaphore....\n");
                 exit(1);
