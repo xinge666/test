@@ -32,6 +32,7 @@ typedef struct thread_pool_job_queue_s{
 typedef struct thread_pool_s{
         pthread_t *threads;//线程
         sem_t *link_all;
+        sem_t *hava_done;
         int link;
         int threads_num;//线程数目
         thread_pool_job_queue *job_queue;//指向工作队列的指针
@@ -68,6 +69,6 @@ void tp_destroy(thread_pool *tp);
 void* tp_thread_func(thread_pool *tp);
 
 //生产者线程执行函数
-void* thread_func_producer(thread_pool *tp,int concurrency_number);
+void* thread_func_producer(thread_pool *tp);
 
 #endif

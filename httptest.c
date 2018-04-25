@@ -117,75 +117,51 @@ int tp_job_quene_init(thread_pool *tp){
 
 //线程函数
 void* tp_thread_func(thread_pool *tp){
-        FUNC function;
-        void *arg_buf;
-        thread_pool_job *job_p;
-        gettimeofday(&start,NULL);
-        
-        while(tp_alive){
-                //线程阻塞,等待信号量
-                 	int ajuge=0;
-        		int *p=&ajuge;
-        		sem_getvalue(tp->link_all, p);
-        		if(0==ajuge )
-        		{
-        			pthread_mutex_lock(&mutex1);
-                    gettimeofday(&end,NULL);
-                    int64_t msec = end.tv_usec-start.tv_usec;
-					int64_t sec = end.tv_sec-start.tv_sec; 
-					
-					if (tp->link < 2000) {
-                        int64_t links_config= tp->link*1000000;
-                        int64_t avg = links_config/(sec*1000000+msec);
-                        //printf("总共发起请求数：%ld\n",tp->link );
-                        printf("平均每秒连接数:%ld\n",avg);
-                        printf("发送持续时间：%ld 微秒\n",sec*1000000+msec );
-                    } else {
-                        int avg = (float)(tp->link)/(float)(sec+(float)msec/1000000);
-                        printf("平均每秒连接数:%ld\n",avg);
-                        printf("发送持续时间：%ld 微秒\n",sec*1000000+msec );
-                    }
+    FUNC function;
+    void *arg_buf;
+    thread_pool_job *job_p;
+    
+    
+    while(tp_alive){
+            //线程阻塞,等待信号量
 
-					//sleep(10);
-					tp_destroy(tp);
-					pthread_mutex_unlock(&mutex1);
-        			break;
-        		}
 
-       			//线程阻塞,等待信号量
-                if(sem_wait(tp->link_all)){
-                        printf("thread waiting for semaphore....\n");
-                        exit(1);
-                }
-
-                if(sem_wait(tp->job_queue->quene_sem)){
-                        printf("thread waiting for semaphore....\n");
-                        exit(1);
-                }
-                if(tp_alive){
-                        pthread_mutex_lock(&mutex);
-                        job_p = tp_get_lastjob(tp);
-                        if(NULL == job_p){
-                                pthread_mutex_unlock(&mutex);
-                                continue;
-                        }
-                        function = job_p->function;
-                        arg_buf = job_p->arg;
-                        if(tp_delete__lastjob(tp))
-                                return;
-                        pthread_mutex_unlock(&mutex);
-                        //运行指定的线程函数
-                        //printf("consumer...get a job from job quene and run it!\n");
-                        function(arg_buf);
-                        free(job_p);
-                        tp_add_work(tp,(void*)thread_func1,NULL);
-
-                }
-                else
-                        return;
+        pthread_mutex_unlock(&mutex1);
+			//线程阻塞,等待信号量
+        if(sem_wait(tp->link_all)){
+                printf("thread waiting for semaphore....\n");
+                exit(1);
         }
 
-        return;
+        if(sem_wait(tp->job_queue->quene_sem)){
+                printf("thread waiting for semaphore....\n");
+                exit(1);
+        }
+        if(tp_alive){
+                pthread_mutex_lock(&mutex);
+                job_p = tp_get_lastjob(tp);
+                if(NULL == job_p){
+                        pthread_mutex_unlock(&mutex);
+                        continue;
+                }
+                function = job_p->function;
+                arg_buf = job_p->arg;
+                if(tp_delete__lastjob(tp))
+                        return;
+                pthread_mutex_unlock(&mutex);
+                //运行指定的线程函数
+                //printf("consumer...get a job from job quene and run it!\n");
+                function(arg_buf);
+                free(job_p);
+                tp_add_work(tp,(void*)thread_func1,NULL);
+                sem_post(tp->hava_done);
+
+        }
+        else
+                return;
+    }
+
+    return;
 }
 
 //向工作队列中添加一个元素
@@ -265,7 +241,8 @@ void tp_destroy(thread_pool *tp){
         }
         free(tp->threads);
         free(tp->link_all);
-        if(sem_destroy(tp->job_queue->quene_sem)){
+
+        if(sem_destroy(tp->job_queue->quene_sem)&&sem_destroy(tp->hava_done)){
                 printf("ERROR:destroy semaphore failed!\n");
         }
         free(tp->job_queue->quene_sem);
@@ -288,19 +265,47 @@ void tp_destroy(thread_pool *tp){
 
 
 //生产者线程执行函数
-void* thread_func_producer(thread_pool *tp,int concurrency_number){
+void* thread_func_producer(thread_pool *tp){
         while(tp->concurrency_number--){
                 //printf("producer...add a job(job1) to job quene!\n");
                 tp_add_work(tp,(void*)thread_func1,NULL);
         }
-        sleep(50);
+        int count = 0;
+        gettimeofday(&start,NULL);
+
+        while(1) {
+            sem_wait(tp->hava_done);
+            if(count ++ >= tp->link-1) {
+                break;
+            };
+        }
+        gettimeofday(&end,NULL);
+        int64_t msec = end.tv_usec-start.tv_usec;
+        int64_t sec = end.tv_sec-start.tv_sec; 
+
+        if (tp->link < 2000) {
+            int64_t links_config= tp->link*1000000;
+            int64_t avg = links_config/(sec*1000000+msec);
+            //printf("总共发起请求数：%ld\n",tp->link );
+            printf("平均每秒连接数:%ld\n",avg);
+            printf("发送持续时间：%ld 微秒\n",sec*1000000+msec );
+        } else {
+            int avg = (float)(tp->link)/(float)(sec+(float)msec/1000000);
+            printf("平均每秒连接数:%ld\n",avg);
+            printf("发送持续时间：%ld 微秒\n",sec*1000000+msec );
+        }
+        tp_destroy(tp);
+        //sleep(10);
+        
+            
+        //sleep(50);
 }
 
 int main(int argc, char* const argv[]){
 	char ch;
-	int thread_num =120;
-	int link_all = 3000;
-	int concurrency_number = 80;
+	int thread_num =10;
+	int link_all = 30;
+	int concurrency_number = 8;
 	while( ( ch = getopt( argc, argv, "n:l:g:a" ) ) != EOF )
 	{
 			switch(ch)
@@ -329,7 +334,9 @@ int main(int argc, char* const argv[]){
     tp->link = link_all;
     tp->concurrency_number = concurrency_number;
     tp->link_all = (sem_t *)malloc(sizeof(sem_t));
+    tp->hava_done = (sem_t *)malloc(sizeof(sem_t));
     sem_init(tp->link_all,0,link_all);
+    sem_init(tp->hava_done,0,0);
     int i;
     int arg = 7;
     pthread_t producer_thread_id;//生产者线程ID
