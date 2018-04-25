@@ -44,7 +44,7 @@ void* thread_func1(){
     if (nRet < 0)
     {
         printf("connect error\n");
-        return;
+        return NULL;
     }
 
     // 准备向度娘发送http的GET请求
@@ -57,7 +57,7 @@ void* thread_func1(){
     if (nRet < 0)
     {
         printf("send error\n");
-        return ;
+        return NULL;
     }
 
     close(sockClient);
@@ -124,9 +124,10 @@ void* tp_thread_func(thread_pool *tp){
         
         while(tp_alive){
                 //线程阻塞,等待信号量
-        		int p=0;
-        		sem_getvalue(tp->link_all, &p);
-        		if(0==p )
+                 	int ajuge=0;
+        		int *p=&ajuge;
+        		sem_getvalue(tp->link_all, p);
+        		if(0==ajuge )
         		{
         			pthread_mutex_lock(&mutex1);
                     gettimeofday(&end,NULL);
@@ -297,9 +298,9 @@ void* thread_func_producer(thread_pool *tp,int concurrency_number){
 
 int main(int argc, char* const argv[]){
 	char ch;
-	int thread_num = 30;
-	int link_all = 40;
-	int concurrency_number = 20;
+	int thread_num =120;
+	int link_all = 3000;
+	int concurrency_number = 80;
 	while( ( ch = getopt( argc, argv, "n:l:g:a" ) ) != EOF )
 	{
 			switch(ch)
