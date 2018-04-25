@@ -32,7 +32,7 @@ typedef struct thread_pool_job_queue_s{
 typedef struct thread_pool_s{
         pthread_t *threads;//线程
         sem_t *link_all;
-        sem_t *hava_done;
+        
         int link;
         int threads_num;//线程数目
         thread_pool_job_queue *job_queue;//指向工作队列的指针
