@@ -29,7 +29,7 @@ struct timeval start,end;
 void* thread_func1(){
    	char szWeb[] = "www.baidu.com";
     // 度娘的ip地址
-    const char* pIPAddr = "127.0.0.1";
+    const char* pIPAddr ="119.75.217.109";
    // printf("web server ip is : %s\n", pIPAddr);
 
     struct sockaddr_in  webServerAddr;
@@ -124,7 +124,7 @@ void* tp_thread_func(thread_pool *tp){
         
         while(tp_alive){
                 //线程阻塞,等待信号量
-        		int p;
+        		int p=0;
         		sem_getvalue(tp->link_all, &p);
         		if(0==p )
         		{
@@ -292,7 +292,7 @@ void* thread_func_producer(thread_pool *tp,int concurrency_number){
                 //printf("producer...add a job(job1) to job quene!\n");
                 tp_add_work(tp,(void*)thread_func1,NULL);
         }
-        sleep(20);
+        sleep(50);
 }
 
 int main(int argc, char* const argv[]){
